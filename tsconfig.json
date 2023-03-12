@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+	"target": "es2021",
+	"strict": true,
+	"module": "es2015",
+	"declaration": true,
+
+	"jsx": "react",
+	"esModuleInterop": true,
+	"moduleResolution": "node",
+	"resolveJsonModule": true,
+	"baseUrl": ".",
+	"paths": {
+	    "~*": ["./*"]
+	}
+    },
+    "include": ["custom.d.ts"],
+    "files": ["src/index.tsx"]
+}
