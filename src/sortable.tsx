@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useDrag, useDrop } from 'react-dnd'
+import { useDrag, useDrop, ConnectableElement } from 'react-dnd'
 import CSS from 'csstype';
 
 let lastItem: unknown
@@ -30,13 +30,21 @@ export function moveItemHelper<T, K extends keyof T>(items: T[], itemKey: K, ite
 	return items
 }
 
+export interface ItemProps {
+	ref: React.Ref<React.ReactHTMLElement<any>>
+	//ref: React.RefObject<HTMLElement>
+	className?: string
+	style?: CSS.Properties
+}
+
 interface SortableContainerProps<T, K extends keyof T> {
 	items: T[]
 	itemKey: K //keyof T
 	//setItems: React.Dispatch<React.SetStateAction<T[]>>
 	setItems: (state: T[]) => void
-	renderItem: (props: T) => React.ReactElement<T>
+	renderItem: (item: T, props: ItemProps) => React.ReactElement<T>
 	type?: string | symbol
+	tag?: string
 	className?: string
 	itemClassName?: string
 	style?: CSS.Properties
@@ -45,7 +53,7 @@ interface SortableContainerProps<T, K extends keyof T> {
 	children?: React.ReactNode
 }
 
-export function SortableContainer<T, K extends keyof T>({ items, itemKey, type, setItems, findItem, moveItem, renderItem, itemClassName, children, ...props }: SortableContainerProps<T, K>) {
+export function SortableContainer<T, K extends keyof T>({ items, itemKey, type, tag, setItems, findItem, moveItem, renderItem, itemClassName, children, ...props }: SortableContainerProps<T, K>) {
 	const typeId = type ?? React.useMemo(() => Symbol('type'), [])
 
 	const findItemCB = findItem || React.useCallback(function findItemCB(itemId: T[K]) {
@@ -65,34 +73,40 @@ export function SortableContainer<T, K extends keyof T>({ items, itemKey, type, 
 			}
 		},
 	}))
-	return <div ref={drop} {...props}>
-			{items.map((item, i) =>
-				<SortableItem
-					key={'' + item[itemKey]}
-					itemKey={itemKey}
-					type={typeId}
-					className={itemClassName}
-					renderItem={renderItem}
-					item={item}
-					findItem={findItemCB}
-					moveItem={moveItemCB}
-				/>
-			)}
-			{children}
-		</div>
+	return React.createElement(tag || 'div',
+		{
+			ref: drop,
+			...props
+		},
+		items.map((item, i) =>
+			<SortableItem
+				key={'' + item[itemKey]}
+				itemKey={itemKey}
+				type={typeId}
+				className={itemClassName}
+				renderItem={renderItem}
+				item={item}
+				findItem={findItemCB}
+				moveItem={moveItemCB}
+			/>
+		),
+		children
+	)
 }
 
 interface SortableItemProps<T, K extends keyof T> {
-	renderItem: (props: T) => React.ReactElement<T>
+	//renderItem: (props: T) => React.ReactElement<T>
+	renderItem: (item: T, props: ItemProps) => React.ReactElement<T>
 	item: T
 	itemKey: K //keyof T
 	findItem: (itemId: T[K]) => number
 	moveItem: (itemId: T[K], to: number) => void
 	type: string | symbol
 	className?: string
+	style?: CSS.Properties
 }
 
-export function SortableItem<T, K extends keyof T>({ renderItem, item, itemKey, findItem, moveItem, type, className }: SortableItemProps<T, K>) {
+export function SortableItem<T, K extends keyof T>({ renderItem, item, itemKey, findItem, moveItem, type, className, style }: SortableItemProps<T, K>) {
 	const [origIdx, setOrigIdx] = React.useState<number>(findItem(item[itemKey]))
 
 	const [{ isDragging }, drag] = useDrag(
@@ -101,6 +115,7 @@ export function SortableItem<T, K extends keyof T>({ renderItem, item, itemKey, 
 			item,
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging()
+				, x: console.log('Drag', Date.now(), type, item)
 			}),
 			isDragging: (monitor) => monitor.getItem() === item,
 			end: (itm, monitor) => {
@@ -131,9 +146,26 @@ export function SortableItem<T, K extends keyof T>({ renderItem, item, itemKey, 
 		}
 	}), [findItem, moveItem])
 
-	return <div ref={node => drag(drop(node))} className={className} style={{ opacity: isDragging ? 0.5 : 1 }}>
+	return renderItem(item, {
+		ref: (node: ConnectableElement) => drag(drop(node)),
+		className,
+		style: { ...style, opacity: isDragging ? 0.5 : 1 }
+	})
+
+	/*
+	return React.createElement(tag || 'div',
+		{
+			ref: node => drag(drop(node)),
+			className,
+			style: { opacity: isDragging ? 0.5 : 1 }
+		},
+		renderItem(item)
+	)
+
+	return <div ref={node => drag(drop(node))} className={className} style={{ ...style, opacity: isDragging ? 0.5 : 1 }}>
 		{renderItem(item)}
 	</div>
+	*/
 }
 
 // vim: ts=4

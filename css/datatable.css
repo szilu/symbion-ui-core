@@ -1,0 +1,135 @@
+/****/
+.sui-data-table-scroll {
+	position: relative;
+}
+
+.sui-data-table {
+	position: relative;
+	--sui-data-table-column-gap: 0.25rem;
+}
+
+.sui-data-table table thead {
+	position: sticky;
+	top: 0;
+}
+
+.sui-scroll .sui-data-table {
+	/*
+	position: static;
+	*/
+}
+/*
+.m-scroll.fill .sui-data-table {
+	min-width: 100%;
+	width: 100%;
+}
+*/
+.sui-data-table .sui-inside .sui-header {
+	display: flex;
+	position: sticky;
+	top: 0;
+	/*
+	*/
+	flex-flow: row nowrap;
+	width: 100%;
+}
+.sui-data-table .sui-inside .sui-header > .sui-column:not(:first-child),
+.sui-data-table .sui-inside .sui-header > .sui-editable:not(:first-child) > .sui-column {
+}
+.sui-data-table .sui-inside .sui-header .sui-column {
+	display: flex;
+	flex-flow: row nowrap;
+	justify-content: space-between;
+	z-index: 9999;
+}
+.sui-data-table .sui-inside .sui-header .sui-column.sui-sortable {
+	user-select: none;
+	cursor: pointer;
+}
+.sui-data-table .sui-inside .sui-header .sui-column > .sui-title {
+	flex-grow: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.sui-data-table .sui-inside .sui-header .sui-column.left { text-align: left; }
+.sui-data-table .sui-inside .sui-header .sui-column.right { text-align: right; }
+.sui-data-table .sui-inside .sui-header .sui-column.center { text-align: center; }
+
+.sui-data-table .sui-inside .sui-header > .sui-editable {
+	cursor: move;
+	user-select: none;
+	padding-right: 0;
+}
+.sui-data-table .sui-inside .sui-header > .sui-editable > .sui-icon {
+	display: none;
+}
+.sui-data-table .sui-inside .sui-header > .sui-editable:hover > .sui-icon {
+	display: block;
+}
+.sui-data-table .sui-inside .sui-header > .sui-editable > .sui-divider > .sui-icon {
+	border: 1px dashed black;
+	margin: 0 0.5rem;
+	height: calc(100% - 0.2rem);
+}
+.sui-data-table .sui-inside .sui-header > .sui-editable > .sui-divider:hover {
+	cursor: col-resize;
+}
+/*
+.sui-data-table > .sui-header > .sui-editable > .sui-column > *:first-child {
+	flex-grow: 1;
+}
+*/
+
+.sui-data-table > .sui-toolbar {
+	display: flex;
+	align-items: center;
+	margin: 0 1rem;
+	z-index: 10;
+	position: absolute;
+	top: 0;
+	right: 0;
+	height: 2rem;
+}
+.sui-data-table > .sui-toolbar-menu {
+	z-index: 10;
+	position: absolute;
+	top: 2rem;
+	right: 0;
+}
+.sui-data-table > .sui-toolbar-menu > .sui-item {
+}
+
+.sui-data-table .sui-inside tr {
+	display: flex;
+	flex-flow: row nowrap;
+	align-items: stretch;
+	min-width: 100%;
+}
+
+.sui-data-table .sui-inside tr > td {
+	/* display: flex; */
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.sui-data-table .sui-inside tr > td.sui-fill {
+	flex-grow: 1;
+}
+.sui-data-table .sui-inside tr > td.left { justify-content: flex-start; }
+.sui-data-table .sui-inside tr > td.right { justify-content: flex-end; }
+.sui-data-table .sui-inside tr > td.center { justify-content: center; }
+.sui-data-table .sui-inside tr > td .sui-icon {
+	height: 1.5rem;
+	margin: 0;
+}
+.sui-data-table .sui-inside tr > td:not(:first-child) {
+	/*
+	margin-left: var(--sui-data-table-column-gap);
+	*/
+}
+.sui-data-table .sui-inside tr > td.editing {
+}
+.sui-data-table .sui-inside tr > td > input {
+	border: 1px solid black;
+}

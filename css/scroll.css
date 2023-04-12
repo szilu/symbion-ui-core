@@ -1,0 +1,15 @@
+.sui-scroll {
+    position: relative;
+    overflow: auto;
+    height: 100%;
+}
+.sui-scroll > .sui-wrapper {
+    display: inline-block;
+}
+.sui-scroll.sui-fill {
+    width: 100%;
+}
+.sui-scroll.sui-fill > .sui-wrapper {
+    min-width: 100%;
+}
+
