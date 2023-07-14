@@ -2,7 +2,7 @@
     "compilerOptions": {
 	"target": "es2021",
 	"strict": true,
-	"module": "es2015",
+	"module": "nodenext",
 	"declaration": true,
 
 	"jsx": "react",
