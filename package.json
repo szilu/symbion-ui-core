@@ -1,6 +1,6 @@
 {
   "name": "@symbion/ui-core",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Symbion UI core components",
   "type": "module",
   "main": "./lib/index.js",
@@ -49,7 +49,7 @@
   },
   "devDependencies": {
     "@symbion/runtype": "^0.5.6",
-    "@symbion/simple-form": "workspace:^",
+    "@symbion/simple-form": "^0.11.0",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "csstype": "^3.1.2",
