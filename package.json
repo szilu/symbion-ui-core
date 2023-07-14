@@ -1,6 +1,6 @@
 {
   "name": "@symbion/ui-core",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Symbion UI core components",
   "type": "module",
   "main": "./lib/index.js",
@@ -10,23 +10,11 @@
     "css"
   ],
   "exports": {
-    ".": {
-      "import": "./lib/index.js",
-      "types": "./lib/index.d.ts"
-    },
-    "./scroll.js": {
-      "import": "./lib/scroll.js",
-      "types": "./lib/scroll.d.ts"
-    },
+    ".": "./lib/index.js",
+    "./scroll": "./lib/scroll.js",
     "./scroll.css": "./css/scroll.css",
-    "./sortable.js": {
-      "import": "./lib/sortable.js",
-      "types": "./lib/sortable.d.ts"
-    },
-    "./datatable.js": {
-      "import": "./lib/datatable.js",
-      "types": "./lib/datatable.d.ts"
-    },
+    "./sortable": "./lib/sortable.js",
+    "./datatable": "./lib/datatable.js",
     "./datatable.css": "./css/datatable.css"
   },
   "scripts": {
