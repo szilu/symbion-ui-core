@@ -14,7 +14,7 @@ import {
 	//FiEdit as IcEdit
 } from 'react-icons/fi'
 
-export interface TableDataProvider<T extends { [id: string]: unknown }> {
+export interface TableDataProvider<T extends { [id: string]: any }> {
 	getData: () => T[]
 	//page?: number
 	lastPage?: number | null
@@ -38,12 +38,12 @@ export interface ColumnDescriptor<T, TV, V> {
 	renderEdit?: (props: { value: V, onChange: (value: V) => void }) => React.ReactNode
 }
 
-export type Columns<T extends { [id: string]: unknown }, TV extends T = T> = {
+export type Columns<T extends { [id: string]: any }, TV extends T = T> = {
 	[id in keyof TV]?: ColumnDescriptor<T, TV, TV[id]>
 }
 
 //export interface ColumnConfig<TV extends { [id: string]: any }> {
-export interface ColumnConfig<C extends { [id: string]: unknown }> {
+export interface ColumnConfig<C extends { [id: string]: any }> {
 	id: keyof C & string
 	width: number
 }
@@ -75,7 +75,7 @@ function classNames(...cn: (string | false | undefined)[]) {
 	return a.length ? a.join(' ') : undefined
 }
 
-export function useTableData<T extends { [id: string]: unknown }, TV extends T = T>(data: T[], columns: Columns<T, TV>): TableDataProvider<T> {
+export function useTableData<T extends { [id: string]: any }, TV extends T = T>(data: T[], columns: Columns<T, TV>): TableDataProvider<T> {
 	//const [d] = React.useState(data)
 	const [sort, setSort] = React.useState<keyof T | undefined>()
 	const [sortAsc, setSortAsc] = React.useState(true)
@@ -121,7 +121,7 @@ interface ColumnHeaderProps<T, TV extends T, ID extends keyof T> {
 }
 
 let resizeStartX = 0
-function ColumnHeader<T extends { [id: string]: unknown }, TV extends T, ID extends keyof T>({ id, column, width, setWidth, sortAsc, onClick, remove, className, ref }: ColumnHeaderProps<T, TV, ID>) {
+function ColumnHeader<T extends { [id: string]: any }, TV extends T, ID extends keyof T>({ id, column, width, setWidth, sortAsc, onClick, remove, className, ref }: ColumnHeaderProps<T, TV, ID>) {
 	const [resizing, setResizing] = React.useState(false)
 
 	function onResizeStart(evt: React.MouseEvent) {
