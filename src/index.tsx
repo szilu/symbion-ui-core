@@ -1,2 +1,2 @@
-export * from './sortable'
-export * from './datatable'
+export * from './sortable.js'
+export * from './datatable.js'

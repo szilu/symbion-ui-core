@@ -37,7 +37,7 @@ export interface ItemProps {
 	style?: CSS.Properties
 }
 
-interface SortableContainerProps<T, K extends keyof T> {
+export interface SortableContainerProps<T, K extends keyof T> {
 	items: T[]
 	itemKey: K //keyof T
 	//setItems: React.Dispatch<React.SetStateAction<T[]>>
