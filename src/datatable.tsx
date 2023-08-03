@@ -28,11 +28,17 @@ export interface TableDataProvider<T extends { [id: string]: any }> {
 	prev?: () => Promise<void>
 }
 
+export interface FormatProps {
+	onEdit?: () => void
+	onCancel?: () => void
+	onSubmit?: (evt: React.SyntheticEvent) => void
+}
+
 export interface ColumnDescriptor<T, TV, V> {
 	title: string
 	defaultWidth: number
 	align?: 'left' | 'right' | 'center'
-	format?: (value: V, row: T) => React.ReactNode
+	format?: (value: V, row: T, props: FormatProps) => React.ReactNode
 	sort?: boolean | ((row: T) => T[keyof T])
 	editable?: boolean | ((row: T) => boolean)
 	renderEdit?: (props: { value: V, onChange: (value: V) => void }) => React.ReactNode
@@ -162,7 +168,7 @@ function ColumnHeader<T extends { [id: string]: any }, TV extends T, ID extends 
 		}
 	}
 
-	return <th ref={ref as any} className={classNames(className, 'sui-column', !!column.sort && 'sui-sortable', column.align)} style={{ width: `${width * 8}px`}} onClick={onClick}>
+	return <div ref={ref as any} className={classNames(className, 'sui-column', !!column.sort && 'sui-sortable', column.align)} style={{ width: `${width * 8}px`}} onClick={onClick}>
 		<div className="sui-title">
 			{column.title}
 			{ sortAsc != undefined && (sortAsc ? <IcSortAsc/> : <IcSortDesc/>)}
@@ -178,7 +184,7 @@ function ColumnHeader<T extends { [id: string]: any }, TV extends T, ID extends 
 		>
 			<div className="sui-icon"/>
 		</div>
-	</th>
+	</div>
 }
 
 interface CellProps<T, TV extends T, ID extends keyof T & string> {
@@ -190,26 +196,35 @@ interface CellProps<T, TV extends T, ID extends keyof T & string> {
 	inputClassName?: string
 	onChange?: (evt: React.ChangeEvent<HTMLInputElement>) => void
 	onBlur?: (evt: React.FocusEvent<any>) => void
+	onEdit?: () => void
+	onCancel?: () => void
+	onSubmit?: (evt: React.SyntheticEvent) => void
 }
 
-function Cell<T extends { [id: string]: any }, TV extends T, ID extends keyof T & string>({ colId, column, width, data }: CellProps<T, TV, ID>) {
-	return <td className={'cell' + (column.align ? ' ' + column.align : '')} style={{ width: `${width * 8}px`}}>
-		{ column.format ? column.format(data[colId] as TV[ID], data) : data[colId] }
-	</td>
+function Cell<T extends { [id: string]: any }, TV extends T, ID extends keyof T & string>({ colId, column, width, data, onEdit, onCancel, onSubmit }: CellProps<T, TV, ID>) {
+	return <div className={'sui-cell' + (column.align ? ' ' + column.align : '')} style={{ width: `${width * 8}px`}}>
+		{ column.format ? column.format(data[colId] as TV[ID], data, {
+			onEdit,
+			onCancel,
+			onSubmit
+		}) : data[colId] }
+	</div>
 }
 
-function EditableCell<T extends { [id: string]: any }, TV extends T, ID extends keyof T & string>({ colId, column, width, data, className, inputClassName, onChange, onBlur }: CellProps<T, TV, ID>) {
+function EditableCell<T extends { [id: string]: any }, TV extends T, ID extends keyof T & string>({ colId, column, width, data, className, inputClassName, onChange, onBlur, onCancel, onSubmit }: CellProps<T, TV, ID>) {
 	//const [editing, setEditing] = React.useState(false)
 	const [value, setValue] = React.useState('')
-	console.log({ colId, column, width, data, className, onChange, onBlur })
+	console.log({ colId, column, width, data, className, onChange, onBlur, onSubmit, onCancel})
 
 	function onInputKeyDown(evt: React.KeyboardEvent) {
 		switch (evt.key) {
 			case 'Enter':
+				onSubmit?.(evt)
 				//onChange && onChange(evt)
 				//setEditing(false)
 				break
 			case 'Escape':
+				onCancel?.()
 				//setEditing(false)
 				break
 		}
@@ -220,7 +235,7 @@ function EditableCell<T extends { [id: string]: any }, TV extends T, ID extends 
 	}
 
 	//if (editing) {
-		return <td className="cell editing" style={{ width: `${width * 8}px`}}>
+		return <div className="sui-cell editing" style={{ width: `${width * 8}px`}}>
 			{ column.renderEdit
 				? column.renderEdit({ value: data[colId] as TV[ID], onChange: (value) => undefined })
 				: <input
@@ -230,11 +245,11 @@ function EditableCell<T extends { [id: string]: any }, TV extends T, ID extends 
 					defaultValue={data[colId]}
 					onChange={onChange}
 					onBlur={onBlur}
-					//onKeyDown={onInputKeyDown}
+					onKeyDown={onInputKeyDown}
 					onFocus={onFocus}
 					style={{ width: '100%' }}
 			/> }
-		</td>
+		</div>
 	/*
 	} else {
 		return <div className={'cell' + (column.align ? ' ' + column.align : '')} style={{ width: `${width * 8}px`}} onClick={() => setEditing(true)}>
@@ -260,18 +275,25 @@ interface RowProps<T extends { [id: string]: any }, TV extends T, C extends Colu
 	columnConfig: ColumnConfig<C>[]
 	selected?: boolean
 	onClick?: (evt: React.SyntheticEvent) => void
+	onEditClick?: () => void
 }
 
-function Row<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV>, ID extends keyof T & string>({ className, data, columns, columnConfig, selected, onClick }: RowProps<T, TV, C, ID>) {
-	return <tr
+function Row<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV>, ID extends keyof T & string>({ className, data, columns, columnConfig, selected, onClick, onEditClick }: RowProps<T, TV, C, ID>) {
+	return <div
 		className={classNames(className, selected ? ' selected' : '')}
 		onClick={evt => onClick?.(evt)}
 	>
 	{columnConfig.map(col =>
-		<Cell key={col.id.toString()} colId={col.id} column={columns[col.id] as any} width={col.width} data={data}/>
+		<Cell key={col.id.toString()}
+			colId={col.id}
+			column={columns[col.id] as any}
+			width={col.width}
+			data={data}
+			onEdit={onEditClick}
+		/>
 	)}
-		<td className="sui-fill"/>
-	</tr>
+		<div className="sui-fill"/>
+	</div>
 }
 
 interface EditRowProps<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV>, ID extends keyof T & string> extends RowProps<T, TV, C, ID> {
@@ -283,21 +305,29 @@ interface EditRowProps<T extends { [id: string]: any }, TV extends T, C extends 
 	inputClassName?: string
 	buttonClassName?: string
 	struct: T.StructType<T>
+	cancelEdit: () => void
 	onChange?: (value: string) => void
+	onSubmit?: (values: T) => Promise<boolean>
 }
 
-function EditRow<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV>, ID extends keyof T & string>({ className, inputClassName, buttonClassName, data, columns, columnConfig, struct, selected, onClick }: EditRowProps<T, TV, C, ID>) {
+function EditRow<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV>, ID extends keyof T & string>({ className, inputClassName, buttonClassName, data, columns, columnConfig, struct, selected, cancelEdit, onClick, onSubmit }: EditRowProps<T, TV, C, ID>) {
 	const formRef = React.useRef(null)
 	const form = useForm(struct, { formRef, init: data })
 	//columnConfig.map(col => console.log(columns[col.id], data, isEditable<T, TV, any>(columns[col.id], data)))
 
-	async function onSubmit() {
+	async function handleSubmit(evt: React.SyntheticEvent) {
+		evt.preventDefault()
 		const valid = await form.valid()
 		console.log('SUBMIT', valid ? form.get() : 'invalid')
 		console.log('SUBMIT', form.get())
 		if (valid) {
-			alert('Form submit\n---------------------\n\n'
-				+ Object.entries(form.get()).map(entry => entry.join(': ')).join('\n'))
+			if (onSubmit) {
+				const res = await onSubmit(form.getStrict())
+				if (res) cancelEdit()
+			} else {
+				alert('Form submit\n---------------------\n\n'
+					+ Object.entries(form.get()).map(entry => entry.join(': ')).join('\n'))
+			}
 		}
 	}
 
@@ -306,14 +336,32 @@ function EditRow<T extends { [id: string]: any }, TV extends T, C extends Column
 		id="xx"
 		className={classNames('sui-row', selected && ' sui-selected')}
 		onClick={evt => onClick?.(evt)}
-		onSubmit={onSubmit}
+		onSubmit={handleSubmit}
 	>
-		<button className={classNames(buttonClassName)} onClick={evt => (evt.preventDefault(), onSubmit())}><IcSettings/></button>
-		{ columnConfig.map(col => isEditable<T, TV, any>(columns[col.id], data)
-			? <EditableCell key={col.id.toString()} className={className} inputClassName={classNames(inputClassName, form.errors[col.id] && 'invalid')} colId={col.id} column={columns[col.id] as any} width={col.width} data={data} {...form.props(col.id)}/>
-			: !!columns[col.id] && <Cell key={col.id.toString()} colId={col.id} column={columns[col.id] as any} width={col.width} data={data}/>
+		{ columnConfig.map(col => isEditable<T, TV, any>(columns[col.id], data) && onSubmit
+			? <EditableCell
+				key={col.id.toString()}
+				className={className}
+				inputClassName={classNames(inputClassName, form.errors[col.id] && 'invalid')}
+				colId={col.id}
+				column={columns[col.id] as any}
+				width={col.width}
+				data={data}
+				onSubmit={handleSubmit}
+				onCancel={cancelEdit}
+				{...form.props(col.id)}
+			/>
+			: !!columns[col.id] && <Cell
+				key={col.id.toString()}
+				colId={col.id}
+				column={columns[col.id] as any}
+				width={col.width}
+				data={data}
+				onSubmit={onSubmit ? handleSubmit : undefined}
+				onCancel={cancelEdit}
+			/>
 		)}
-		<td className="sui-fill"/>
+		<div className="sui-fill"/>
 	</form>
 }
 
@@ -343,6 +391,7 @@ export interface DataTableProps<T extends { [id: string]: any }, TV extends T, C
 	onCellChange?: (id: keyof T, patch: Partial<T>) => void
 	onRowChange?: (id: keyof T, patch: Partial<T>) => void
 	setColumnConfig?: React.Dispatch<React.SetStateAction<ColumnConfig<C>[]>>
+	onSubmit?: (values: T) => Promise<boolean>
 }
 
 export function DataTable<T extends { [id: string]: any }, TV extends T = T, C extends Columns<T, TV> = Columns<T, TV>>({
@@ -366,6 +415,7 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 	onRowSelect,
 	onCellChange,
 	onRowChange,
+	onSubmit,
 	columns,
 	columnConfig,
 	setColumnConfig
@@ -375,7 +425,7 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 	//const [sort, setSort] = React.useState<keyof T | undefined>()
 	//const [sortAsc, setSortAsc] = React.useState(true)
 	const [selectedRowId, setSelectedRowId] = React.useState<string | undefined>()
-	const [editedRowId, setEditedRowId] = React.useState<any | undefined>(11)
+	const [editedRowId, setEditedRowId] = React.useState<string | undefined>()
 	const SortableTableHeader = SortableContainer<ColumnConfig<C>, 'id'>
 	const ConfigMenuItem = SortableItem<ColumnConfig<C>, 'id'>
 	//console.log('columnConfig', columnConfig.map(c => c.id.toString() + ':' + c.width))
@@ -457,78 +507,60 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 		onRowSelect?.(selectedRowId === id ? undefined : id)
 	}
 
-	const inside = <table className={classNames(tableClassName, 'sui-inside')}>
-		<thead>
-			{ setColumnConfig && configMode ? <>
-				<SortableTableHeader
-					className={classNames(headerClassName, 'sui-header')}
-					itemClassName="sui-editable"
-					items={columnConfig}
-					type={sortableTypeId}
-					tag="tr"
-					itemKey="id"
-					setItems={setColumnConfig}
-					renderItem={renderHeaderItem}
-					findItem={findColumn}
-					moveItem={moveColumn}
-				>
-					<td className="sui-fill"/>
-				</SortableTableHeader>
-			</>
-			:
-				<tr className={classNames(headerClassName, 'sui-header')}>
-					{ columnConfig.map(col => <ColumnHeader<T, TV, string>
-						key={col.id.toString()}
-						id={col.id}
-						column={columns?.[col.id] || { title: '', defaultWidth: 1 }}
-						width={col.width}
-						sortAsc={td.state.sort == col.id ? td.state.sortAsc : undefined}
-						onClick={columns?.[col.id]?.sort ? () => toggleSort(col.id) : undefined}
-					/>) }
-					<td className="sui-fill"/>
-				</tr>
-			}
-		</thead>
-		<tbody>
-			{ d.map(row => struct && (editedRowId === row[dataKey])
-				? <EditRow<T, TV, C, string>
-					key={row[dataKey]}
-					className={classNames(rowClassName, 'sui-row')}
-					inputClassName={inputClassName}
-					data={row}
-					columns={columns}
-					columnConfig={columnConfig}
-					struct={struct}
-					selected={selectedRowId === row[dataKey]}
-					onClick={evt => onRowClick(evt, row[dataKey])}
-				/>
-				: <Row<T, TV, C, string>
-					key={row[dataKey]}
-					className={classNames(rowClassName, selectedRowId === row[dataKey] && selectedRowClassName, 'sui-row')}
-					data={row}
-					columns={columns}
-					columnConfig={columnConfig}
-					selected={selectedRowId === row[dataKey]}
-					onClick={evt => onRowClick(evt, row[dataKey])}
-				/>
-				/*
-				: <React.Fragment key={row[dataKey]}>
-					{ onRowChange && <div style={{ position: 'relative' }}>
-						<button className={buttonClassName} style={{ position: 'absolute' }} onClick={() => setEditedRowId(row[dataKey])}><IcEdit/></button>
-					</div> }
-					<Row<T, TV, C, string> className={classNames(rowClassName, selectedRowId === row[dataKey] && selectedRowClassName, 'sui-row')} data={row} columns={columns} columnConfig={columnConfig} selected={selectedRowId === row[dataKey]} onClick={evt => onRowClick(evt, row[dataKey])}/>
-				</React.Fragment>
-				*/
-			)}
-		</tbody>
-		{/*
-		{ d.map(row => <div key={row[dataKey]} className={'row' + (selectedRowId === row[dataKey] ? ' selected' : '')} onClick={evt => onRowClick(evt, row[dataKey])}>
-			{ columnConfig.map(col => (onCellChange) && isEditable<T, TV, any>(columns[col.id], row)
-				? <EditableCell key={col.id.toString()} colId={col.id} column={columns[col.id]} width={col.width} data={row} onChange={(value) => handleCellChange(row, col.id, value)}/>
-				: <Cell key={col.id.toString()} colId={col.id} column={columns[col.id] as any} width={col.width} data={row}/>) }
-		</div>)}
-		*/}
-	</table>
+	const inside = <div className={classNames(tableClassName, 'sui-inside')}>
+		{ setColumnConfig && configMode ? <SortableTableHeader
+			className={classNames(headerClassName, 'sui-header')}
+			itemClassName="sui-editable"
+			items={columnConfig}
+			type={sortableTypeId}
+			tag="dif"
+			itemKey="id"
+			setItems={setColumnConfig}
+			renderItem={renderHeaderItem}
+			findItem={findColumn}
+			moveItem={moveColumn}
+		>
+			<div className="sui-fill"/>
+		</SortableTableHeader>
+		:
+			<div className={classNames(headerClassName, 'sui-header')}>
+				{ columnConfig.map(col => <ColumnHeader<T, TV, string>
+					key={col.id.toString()}
+					id={col.id}
+					column={columns?.[col.id] || { title: '', defaultWidth: 1 }}
+					width={col.width}
+					sortAsc={td.state.sort == col.id ? td.state.sortAsc : undefined}
+					onClick={columns?.[col.id]?.sort ? () => toggleSort(col.id) : undefined}
+				/>) }
+				<div className="sui-fill"/>
+			</div>
+		}
+		{ d.map(row => struct && (editedRowId === row[dataKey])
+			? <EditRow<T, TV, C, string>
+				key={row[dataKey]}
+				className={classNames(rowClassName, 'sui-row')}
+				inputClassName={inputClassName}
+				data={row}
+				columns={columns}
+				columnConfig={columnConfig}
+				struct={struct}
+				selected={selectedRowId === row[dataKey]}
+				cancelEdit={() => setEditedRowId(undefined)}
+				onClick={evt => onRowClick(evt, row[dataKey])}
+				onSubmit={onSubmit}
+			/>
+			: <Row<T, TV, C, string>
+				key={row[dataKey]}
+				className={classNames(rowClassName, selectedRowId === row[dataKey] && selectedRowClassName, 'sui-row')}
+				data={row}
+				columns={columns}
+				columnConfig={columnConfig}
+				selected={selectedRowId === row[dataKey]}
+				onClick={evt => onRowClick(evt, row[dataKey])}
+				onEditClick={onSubmit ? () => setEditedRowId(row[dataKey]) : undefined}
+			/>
+		)}
+	</div>
 
 	return <div className={classNames(className, 'sui-data-table')}>
 		{ !!setColumnConfig && <>
