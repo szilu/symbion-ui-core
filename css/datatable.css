@@ -8,22 +8,6 @@
 	--sui-data-table-column-gap: 0.25rem;
 }
 
-.sui-data-table table thead {
-	position: sticky;
-	top: 0;
-}
-
-.sui-scroll .sui-data-table {
-	/*
-	position: static;
-	*/
-}
-/*
-.m-scroll.fill .sui-data-table {
-	min-width: 100%;
-	width: 100%;
-}
-*/
 .sui-data-table .sui-inside .sui-header {
 	display: flex;
 	position: sticky;
@@ -32,6 +16,7 @@
 	*/
 	flex-flow: row nowrap;
 	width: 100%;
+	font-weight: bold;
 }
 .sui-data-table .sui-inside .sui-header > .sui-column:not(:first-child),
 .sui-data-table .sui-inside .sui-header > .sui-editable:not(:first-child) > .sui-column {
@@ -100,36 +85,36 @@
 .sui-data-table > .sui-toolbar-menu > .sui-item {
 }
 
-.sui-data-table .sui-inside tr {
+.sui-data-table .sui-inside .sui-row {
 	display: flex;
 	flex-flow: row nowrap;
 	align-items: stretch;
 	min-width: 100%;
 }
 
-.sui-data-table .sui-inside tr > td {
+.sui-data-table .sui-inside .sui-row > .sui-cell {
 	/* display: flex; */
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
-.sui-data-table .sui-inside tr > td.sui-fill {
+.sui-data-table .sui-inside .sui-row > .sui-cell.sui-fill {
 	flex-grow: 1;
 }
-.sui-data-table .sui-inside tr > td.left { justify-content: flex-start; }
-.sui-data-table .sui-inside tr > td.right { justify-content: flex-end; }
-.sui-data-table .sui-inside tr > td.center { justify-content: center; }
-.sui-data-table .sui-inside tr > td .sui-icon {
+.sui-data-table .sui-inside .sui-row > .sui-cell.left { justify-content: flex-start; }
+.sui-data-table .sui-inside .sui-row > .sui-cell.right { justify-content: flex-end; }
+.sui-data-table .sui-inside .sui-row > .sui-cell.center { justify-content: center; }
+.sui-data-table .sui-inside .sui-row > .sui-cell .sui-icon {
 	height: 1.5rem;
 	margin: 0;
 }
-.sui-data-table .sui-inside tr > td:not(:first-child) {
+.sui-data-table .sui-inside .sui-row > .sui-cell:not(:first-child) {
 	/*
 	margin-left: var(--sui-data-table-column-gap);
 	*/
 }
-.sui-data-table .sui-inside tr > td.editing {
+.sui-data-table .sui-inside .sui-row > .sui-cell.editing {
 }
-.sui-data-table .sui-inside tr > td > input {
+.sui-data-table .sui-inside .sui-row > .sui-cell > input {
 	border: 1px solid black;
 }

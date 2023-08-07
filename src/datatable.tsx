@@ -508,58 +508,62 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 	}
 
 	const inside = <div className={classNames(tableClassName, 'sui-inside')}>
-		{ setColumnConfig && configMode ? <SortableTableHeader
-			className={classNames(headerClassName, 'sui-header')}
-			itemClassName="sui-editable"
-			items={columnConfig}
-			type={sortableTypeId}
-			tag="dif"
-			itemKey="id"
-			setItems={setColumnConfig}
-			renderItem={renderHeaderItem}
-			findItem={findColumn}
-			moveItem={moveColumn}
-		>
-			<div className="sui-fill"/>
-		</SortableTableHeader>
-		:
-			<div className={classNames(headerClassName, 'sui-header')}>
-				{ columnConfig.map(col => <ColumnHeader<T, TV, string>
-					key={col.id.toString()}
-					id={col.id}
-					column={columns?.[col.id] || { title: '', defaultWidth: 1 }}
-					width={col.width}
-					sortAsc={td.state.sort == col.id ? td.state.sortAsc : undefined}
-					onClick={columns?.[col.id]?.sort ? () => toggleSort(col.id) : undefined}
-				/>) }
+		<div className="sui-head">
+			{ setColumnConfig && configMode ? <SortableTableHeader
+				className={classNames(headerClassName, 'sui-header')}
+				itemClassName="sui-editable"
+				items={columnConfig}
+				type={sortableTypeId}
+				tag="dif"
+				itemKey="id"
+				setItems={setColumnConfig}
+				renderItem={renderHeaderItem}
+				findItem={findColumn}
+				moveItem={moveColumn}
+			>
 				<div className="sui-fill"/>
-			</div>
-		}
-		{ d.map(row => struct && (editedRowId === row[dataKey])
-			? <EditRow<T, TV, C, string>
-				key={row[dataKey]}
-				className={classNames(rowClassName, 'sui-row')}
-				inputClassName={inputClassName}
-				data={row}
-				columns={columns}
-				columnConfig={columnConfig}
-				struct={struct}
-				selected={selectedRowId === row[dataKey]}
-				cancelEdit={() => setEditedRowId(undefined)}
-				onClick={evt => onRowClick(evt, row[dataKey])}
-				onSubmit={onSubmit}
-			/>
-			: <Row<T, TV, C, string>
-				key={row[dataKey]}
-				className={classNames(rowClassName, selectedRowId === row[dataKey] && selectedRowClassName, 'sui-row')}
-				data={row}
-				columns={columns}
-				columnConfig={columnConfig}
-				selected={selectedRowId === row[dataKey]}
-				onClick={evt => onRowClick(evt, row[dataKey])}
-				onEditClick={onSubmit ? () => setEditedRowId(row[dataKey]) : undefined}
-			/>
-		)}
+			</SortableTableHeader>
+			:
+				<div className={classNames(headerClassName, 'sui-header')}>
+					{ columnConfig.map(col => <ColumnHeader<T, TV, string>
+						key={col.id.toString()}
+						id={col.id}
+						column={columns?.[col.id] || { title: '', defaultWidth: 1 }}
+						width={col.width}
+						sortAsc={td.state.sort == col.id ? td.state.sortAsc : undefined}
+						onClick={columns?.[col.id]?.sort ? () => toggleSort(col.id) : undefined}
+					/>) }
+					<div className="sui-fill"/>
+				</div>
+			}
+		</div>
+		<div className="sui-body">
+			{ d.map(row => struct && (editedRowId === row[dataKey])
+				? <EditRow<T, TV, C, string>
+					key={row[dataKey]}
+					className={classNames(rowClassName, 'sui-row')}
+					inputClassName={inputClassName}
+					data={row}
+					columns={columns}
+					columnConfig={columnConfig}
+					struct={struct}
+					selected={selectedRowId === row[dataKey]}
+					cancelEdit={() => setEditedRowId(undefined)}
+					onClick={evt => onRowClick(evt, row[dataKey])}
+					onSubmit={onSubmit}
+				/>
+				: <Row<T, TV, C, string>
+					key={row[dataKey]}
+					className={classNames(rowClassName, selectedRowId === row[dataKey] && selectedRowClassName, 'sui-row')}
+					data={row}
+					columns={columns}
+					columnConfig={columnConfig}
+					selected={selectedRowId === row[dataKey]}
+					onClick={evt => onRowClick(evt, row[dataKey])}
+					onEditClick={onSubmit ? () => setEditedRowId(row[dataKey]) : undefined}
+				/>
+			)}
+		</div>
 	</div>
 
 	return <div className={classNames(className, 'sui-data-table')}>
