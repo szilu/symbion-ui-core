@@ -3,6 +3,7 @@ import * as T from '@symbion/runtype'
 import { useForm } from '@symbion/simple-form'
 import { Scroll } from './scroll'
 import { SortableContainer, SortableItem, ItemProps, findItemHelper, moveItemHelper } from './sortable'
+import { scrollIntoView } from './utils'
 
 import {
 	FiArrowUp as IcSortAsc,
@@ -24,6 +25,9 @@ export interface TableDataProvider<T extends { [id: string]: any }> {
 		page?: number
 	}
 	setState?: (sort: keyof T | undefined, sortAsc: boolean | undefined, page: number | undefined) => void
+	active?: string | number
+	setActive?: (id: string | number) => void
+	onKeyDown?: (evt: React.KeyboardEvent) => void
 	next?: () => Promise<void>
 	prev?: () => Promise<void>
 }
@@ -228,6 +232,7 @@ function EditableCell<T extends { [id: string]: any }, TV extends T, ID extends 
 				//setEditing(false)
 				break
 		}
+		evt.stopPropagation()
 	}
 
 	function onFocus(evt: React.FocusEvent<HTMLInputElement>) {
@@ -274,13 +279,21 @@ interface RowProps<T extends { [id: string]: any }, TV extends T, C extends Colu
 	columns: C
 	columnConfig: ColumnConfig<C>[]
 	selected?: boolean
+	active?: boolean
 	onClick?: (evt: React.SyntheticEvent) => void
 	onEditClick?: () => void
 }
 
-function Row<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV>, ID extends keyof T & string>({ className, data, columns, columnConfig, selected, onClick, onEditClick }: RowProps<T, TV, C, ID>) {
+function Row<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV>, ID extends keyof T & string>({ className, data, columns, columnConfig, selected, active, onClick, onEditClick }: RowProps<T, TV, C, ID>) {
+	const rowRef = React.useRef<HTMLDivElement>(null)
+
+	React.useEffect(() => {
+		if (rowRef.current && active) scrollIntoView(rowRef.current)
+	}, [active])
+
 	return <div
-		className={classNames(className, selected ? ' selected' : '')}
+		className={classNames(className, selected ? ' selected' : '', active ? ' active' : '')}
+		ref={rowRef}
 		onClick={evt => onClick?.(evt)}
 	>
 	{columnConfig.map(col =>
@@ -310,7 +323,7 @@ interface EditRowProps<T extends { [id: string]: any }, TV extends T, C extends 
 	onSubmit?: (values: T) => Promise<boolean>
 }
 
-function EditRow<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV>, ID extends keyof T & string>({ className, inputClassName, buttonClassName, data, columns, columnConfig, struct, selected, cancelEdit, onClick, onSubmit }: EditRowProps<T, TV, C, ID>) {
+function EditRow<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV>, ID extends keyof T & string>({ className, inputClassName, buttonClassName, data, columns, columnConfig, struct, selected, active, cancelEdit, onClick, onSubmit }: EditRowProps<T, TV, C, ID>) {
 	const formRef = React.useRef(null)
 	const form = useForm(struct, { formRef, init: data })
 	//columnConfig.map(col => console.log(columns[col.id], data, isEditable<T, TV, any>(columns[col.id], data)))
@@ -334,7 +347,7 @@ function EditRow<T extends { [id: string]: any }, TV extends T, C extends Column
 	return <form
 		ref={formRef}
 		id="xx"
-		className={classNames('sui-row', selected && ' sui-selected')}
+		className={classNames('sui-row', selected && ' selected', active && ' active')}
 		onClick={evt => onClick?.(evt)}
 		onSubmit={handleSubmit}
 	>
@@ -434,7 +447,6 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 	const unusedColumns = configMode
 		? Object.entries(columns).filter(([id, col]) => !columnConfig.find(cc => cc.id === id))
 		: []
-	console.log('className', className)
 
 	/*
 	const sortedData = React.useMemo(() => {
@@ -503,11 +515,33 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 
 	function onRowClick(evt: React.SyntheticEvent, id: string) {
 		console.log('select', id)
+		if (td.setActive) td.setActive(id)
 		setSelectedRowId(r => r === id ? undefined : id)
 		onRowSelect?.(selectedRowId === id ? undefined : id)
 	}
 
-	const inside = <div className={classNames(tableClassName, 'sui-inside')}>
+	function onKeyDown(evt: React.KeyboardEvent) {
+		//console.log('keydown', evt.key, td.active)
+		if (!td.setActive) return
+		let active: string | number | undefined
+
+		if (evt.key == 'ArrowDown') {
+			const idx = d.findIndex(d => d[dataKey] === td.active)
+			if (idx < d.length - 1) active = d[idx + 1]?.[dataKey]
+			else if (!td.active) active = d[0]?.[dataKey]
+		} else if (evt.key == 'ArrowUp') {
+			const idx = d.findIndex(d => d[dataKey] === td.active)
+			console.log('idx', idx, d.length)
+			if (idx > 0) active = d[idx - 1]?.[dataKey]
+			else if (!td.active) active = d[d.length - 1]?.[dataKey]
+		}
+		if (active) {
+			td.setActive(active)
+			evt.preventDefault()
+		}
+	}
+
+	const inside = <div className={classNames(tableClassName, 'sui-inside')} onKeyDown={td.onKeyDown ?? onKeyDown} tabIndex={td.setActive ? 0 : undefined}>
 		<div className="sui-head">
 			{ setColumnConfig && configMode ? <SortableTableHeader
 				className={classNames(headerClassName, 'sui-header')}
@@ -548,6 +582,7 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 					columnConfig={columnConfig}
 					struct={struct}
 					selected={selectedRowId === row[dataKey]}
+					active={row[dataKey] === td.active}
 					cancelEdit={() => setEditedRowId(undefined)}
 					onClick={evt => onRowClick(evt, row[dataKey])}
 					onSubmit={onSubmit}
@@ -559,6 +594,7 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 					columns={columns}
 					columnConfig={columnConfig}
 					selected={selectedRowId === row[dataKey]}
+					active={row[dataKey] === td.active}
 					onClick={evt => onRowClick(evt, row[dataKey])}
 					onEditClick={onSubmit ? () => setEditedRowId(row[dataKey]) : undefined}
 				/>
