@@ -1,9 +1,9 @@
 import * as React from 'react'
 import * as T from '@symbion/runtype'
 import { useForm } from '@symbion/simple-form'
-import { Scroll } from './scroll'
-import { SortableContainer, SortableItem, ItemProps, findItemHelper, moveItemHelper } from './sortable'
-import { scrollIntoView } from './utils'
+import { Scroll } from './scroll.js'
+import { SortableContainer, SortableItem, ItemProps, findItemHelper, moveItemHelper } from './sortable.js'
+import { scrollIntoView } from './utils.js'
 
 import {
 	FiArrowUp as IcSortAsc,
@@ -13,14 +13,14 @@ import {
 	FiSettings as IcSettings,
 	FiTrash2 as IcDelete,
 	//FiEdit as IcEdit
-} from 'react-icons/fi'
+} from 'react-icons/fi/index.js'
 
-export interface TableDataProvider<T extends { [id: string]: any }> {
+export interface TableDataProvider<T extends { [id: string]: any }, TV extends T = T> {
 	getData: () => T[]
 	//page?: number
 	lastPage?: number | null
 	state: {
-		sort?: keyof T
+		sort?: keyof TV
 		sortAsc?: boolean
 		page?: number
 	}
@@ -43,8 +43,9 @@ export interface ColumnDescriptor<T, TV, V> {
 	defaultWidth: number
 	align?: 'left' | 'right' | 'center'
 	format?: (value: V, row: T, props: FormatProps) => React.ReactNode
-	sort?: boolean | ((row: T) => T[keyof T])
+	sort?: boolean | ((row: T) => string | number)
 	editable?: boolean | ((row: T) => boolean)
+	hidden?: boolean
 	renderEdit?: (props: { value: V, onChange: (value: V) => void }) => React.ReactNode
 }
 
@@ -85,7 +86,7 @@ function classNames(...cn: (string | false | undefined)[]) {
 	return a.length ? a.join(' ') : undefined
 }
 
-export function useTableData<T extends { [id: string]: any }, TV extends T = T>(data: T[], columns: Columns<T, TV>): TableDataProvider<T> {
+export function useTableData<T extends { [id: string]: any }, TV extends T = T>(data: T[], columns: Columns<T, TV>): TableDataProvider<T, TV> {
 	//const [d] = React.useState(data)
 	const [sort, setSort] = React.useState<keyof T | undefined>()
 	const [sortAsc, setSortAsc] = React.useState(true)
@@ -93,7 +94,7 @@ export function useTableData<T extends { [id: string]: any }, TV extends T = T>(
 	const sortedData = React.useMemo(() => {
 		if (!sort) return data
 		const col = columns[sort]
-		const sortFunc: (d: T) => T[keyof T] = (col?.sort && typeof col.sort == 'function') ? col.sort : (d: T) => d[sort]
+		const sortFunc: (d: T) => unknown = (col?.sort && typeof col.sort == 'function') ? col.sort : (d: T) => d[sort]
 		return data.sort((d1, d2) => {
 			const v1 = sortFunc(d1)
 			const v2 = sortFunc(d2)
@@ -147,7 +148,7 @@ function ColumnHeader<T extends { [id: string]: any }, TV extends T, ID extends 
 	}, [])
 
 	const onResizeMove = React.useCallback(function onResizeMove(evt: MouseEvent) {
-		console.log('onResizeMove', width, calcWidth(evt.clientX - resizeStartX))
+		//console.log('onResizeMove', width, calcWidth(evt.clientX - resizeStartX))
 		if (setWidth) setWidth(calcWidth(evt.clientX - resizeStartX))
 		evt.stopPropagation()
 		evt.preventDefault()
@@ -379,7 +380,7 @@ function EditRow<T extends { [id: string]: any }, TV extends T, C extends Column
 }
 
 export interface DataTableProps<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV> = Columns<T, TV>> {
-	data: T[] | TableDataProvider<T>
+	data: T[] | TableDataProvider<T, TV>
 	dataKey: keyof T
 	//columns: Columns<T, TV>
 	//columnConfig: ColumnConfig<TV>[]
@@ -445,7 +446,7 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 	const td = Array.isArray(data) ? useTableData(data, columns) : data
 	const d = Array.isArray(data) ? data : data.getData()
 	const unusedColumns = configMode
-		? Object.entries(columns).filter(([id, col]) => !columnConfig.find(cc => cc.id === id))
+		? Object.entries(columns).filter(([id, col]) => !col.hidden && !columnConfig.find(cc => cc.id === id ))
 		: []
 
 	/*
