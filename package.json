@@ -1,6 +1,6 @@
 {
   "name": "@symbion/ui-core",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Symbion UI core components",
   "type": "module",
   "main": "./lib/index.js",
