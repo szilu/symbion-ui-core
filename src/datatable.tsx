@@ -26,7 +26,7 @@ export interface TableDataProvider<T extends { [id: string]: any }, TV extends T
 	}
 	setState?: (sort: keyof T | undefined, sortAsc: boolean | undefined, page: number | undefined) => void
 	active?: string | number
-	setActive?: (id: string | number) => void
+	setActive?: (id: string | number | undefined) => void
 	onKeyDown?: (evt: React.KeyboardEvent) => void
 	next?: () => Promise<void>
 	prev?: () => Promise<void>
@@ -408,7 +408,8 @@ export interface DataTableProps<T extends { [id: string]: any }, TV extends T, C
 	onSubmit?: (values: T) => Promise<boolean>
 }
 
-export function DataTable<T extends { [id: string]: any }, TV extends T = T, C extends Columns<T, TV> = Columns<T, TV>>({
+//export const DataTable = React.forwardRef<HTMLDivElement>(function DataTable<T extends { [id: string]: any }, TV extends T = T, C extends Columns<T, TV> = Columns<T, TV>>({
+function DataTableInner<T extends { [id: string]: any }, TV extends T = T, C extends Columns<T, TV> = Columns<T, TV>>({
 	struct,
 	scroll,
 	selection,
@@ -433,7 +434,8 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 	columns,
 	columnConfig,
 	setColumnConfig
-}: DataTableProps<T, TV, C>) {
+}: DataTableProps<T, TV, C>, ref?: React.Ref<HTMLDivElement>) {
+//}: DataTableProps<T, TV, C>) {
 	const sortableTypeId = React.useMemo(() => Symbol('type'), [])
 	const [configMode, setConfigMode] = React.useState(false)
 	//const [sort, setSort] = React.useState<keyof T | undefined>()
@@ -516,7 +518,10 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 
 	function onRowClick(evt: React.SyntheticEvent, id: string) {
 		console.log('select', id)
-		if (td.setActive) td.setActive(id)
+		if (td.setActive) {
+			if (td.active !== id) td.setActive(id)
+			else td.setActive(undefined)
+		}
 		setSelectedRowId(r => r === id ? undefined : id)
 		onRowSelect?.(selectedRowId === id ? undefined : id)
 	}
@@ -542,7 +547,8 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 		}
 	}
 
-	const inside = <div className={classNames(tableClassName, 'sui-inside')} onKeyDown={td.onKeyDown ?? onKeyDown} tabIndex={td.setActive ? 0 : undefined}>
+	//const inside = <div className={classNames(tableClassName, 'sui-inside')} onKeyDown={td.onKeyDown ?? onKeyDown} tabIndex={td.setActive ? 0 : undefined}>
+	const inside = <div className={classNames(tableClassName, 'sui-inside')}>
 		<div className="sui-head">
 			{ setColumnConfig && configMode ? <SortableTableHeader
 				className={classNames(headerClassName, 'sui-header')}
@@ -603,7 +609,8 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 		</div>
 	</div>
 
-	return <div className={classNames(className, 'sui-data-table')}>
+	//return <div className={classNames(className, 'sui-data-table')}>
+	return <div ref={ref} className={classNames(className, 'sui-data-table')} onKeyDown={td.onKeyDown ?? onKeyDown} tabIndex={td.setActive ? 0 : undefined}>
 		{ !!setColumnConfig && <>
 			<div className={classNames(toolbarClassName, 'sui-toolbar')}>
 				{ td.state.page != undefined && <>
@@ -634,5 +641,9 @@ export function DataTable<T extends { [id: string]: any }, TV extends T = T, C e
 			: inside }
 	</div>
 }
+
+export const DataTable = React.forwardRef(DataTableInner) as <T extends { [id: string]: any }, TV extends T = T, C extends Columns<T, TV> = Columns<T, TV>>(
+	props: DataTableProps<T, TV, C> & { ref?: React.ForwardedRef<HTMLDivElement> }
+) => ReturnType<typeof DataTableInner>
 
 // vim: ts=4
