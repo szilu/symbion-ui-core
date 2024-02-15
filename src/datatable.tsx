@@ -32,17 +32,27 @@ export interface TableDataProvider<T extends { [id: string]: any }, TV extends T
 	prev?: () => Promise<void>
 }
 
-export interface FormatProps {
+export interface SelectionProvider {
+	selected: (id: string | number) => boolean
+	getSelection: () => (string | number)[]
+	setSelection: (selection: (string | number)[]) => void
+	addSelection: (id: string | number) => void
+	removeSelection: (id: string | number) => void
+	selectAll: () => void
+}
+
+export interface FormatProps<T extends { [id: string]: any }> {
 	onEdit?: () => void
 	onCancel?: () => void
 	onSubmit?: (evt: React.SyntheticEvent) => void
+	selection?: SelectionProvider
 }
 
-export interface ColumnDescriptor<T, TV, V> {
-	title: string
+export interface ColumnDescriptor<T extends { [id: string]: any }, TV extends T, V> {
+	title: string | ((props: FormatProps<T>) => React.ReactNode)
 	defaultWidth: number
 	align?: 'left' | 'right' | 'center'
-	format?: (value: V, row: T, props: FormatProps) => React.ReactNode
+	format?: (value: V, row: T, props: FormatProps<T>) => React.ReactNode
 	sort?: boolean | ((row: T) => string | number)
 	editable?: boolean | ((row: T) => boolean)
 	hidden?: boolean
@@ -119,20 +129,23 @@ function calcWidth(dx: number) {
 	return Math.max((Math.round(dx / 8)), 2)
 }
 
-interface ColumnHeaderProps<T, TV extends T, ID extends keyof T> {
+interface ColumnHeaderProps<T extends { [id: string]: any }, TV extends T, ID extends keyof T> {
 	id: ID
 	column: ColumnDescriptor<T, TV, TV[ID]>
 	width: number
 	setWidth?: (width: number) => void
 	sortAsc?: boolean
 	onClick?: () => void
+	selection?: SelectionProvider
 	remove?: () => void
 	className?: string
 	ref?: React.Ref<React.ReactHTMLElement<any>>
 }
 
 let resizeStartX = 0
-function ColumnHeader<T extends { [id: string]: any }, TV extends T, ID extends keyof T>({ id, column, width, setWidth, sortAsc, onClick, remove, className, ref }: ColumnHeaderProps<T, TV, ID>) {
+function ColumnHeader<T extends { [id: string]: any }, TV extends T, ID extends keyof T>({
+	id, column, width, setWidth, sortAsc, onClick, selection, remove, className, ref
+}: ColumnHeaderProps<T, TV, ID>) {
 	const [resizing, setResizing] = React.useState(false)
 
 	function onResizeStart(evt: React.MouseEvent) {
@@ -175,7 +188,7 @@ function ColumnHeader<T extends { [id: string]: any }, TV extends T, ID extends 
 
 	return <div ref={ref as any} className={classNames(className, 'sui-column', !!column.sort && 'sui-sortable', column.align)} style={{ width: `${width * 8}px`}} onClick={onClick}>
 		<div className="sui-title">
-			{column.title}
+			{typeof column.title == 'function' ? column.title({ selection }) : column.title}
 			{ sortAsc != undefined && (sortAsc ? <IcSortAsc/> : <IcSortDesc/>)}
 		</div>
 		{/* remove && <IcDelete className="sui-icon" onClick={remove}/> */}
@@ -192,7 +205,7 @@ function ColumnHeader<T extends { [id: string]: any }, TV extends T, ID extends 
 	</div>
 }
 
-interface CellProps<T, TV extends T, ID extends keyof T & string> {
+interface CellProps<T extends { [id: string]: any }, TV extends T, ID extends keyof T & string> {
 	colId: ID
 	column: ColumnDescriptor<T, TV, TV[ID]>
 	width: number
@@ -204,14 +217,18 @@ interface CellProps<T, TV extends T, ID extends keyof T & string> {
 	onEdit?: () => void
 	onCancel?: () => void
 	onSubmit?: (evt: React.SyntheticEvent) => void
+	selection?: SelectionProvider
 }
 
-function Cell<T extends { [id: string]: any }, TV extends T, ID extends keyof T & string>({ colId, column, width, data, onEdit, onCancel, onSubmit }: CellProps<T, TV, ID>) {
+function Cell<T extends { [id: string]: any }, TV extends T, ID extends keyof T & string>({
+	colId, column, width, data, onEdit, onCancel, onSubmit, selection
+}: CellProps<T, TV, ID>) {
 	return <div className={'sui-cell' + (column.align ? ' ' + column.align : '')} style={{ width: `${width * 8}px`}}>
 		{ column.format ? column.format(data[colId] as TV[ID], data, {
 			onEdit,
 			onCancel,
-			onSubmit
+			onSubmit,
+			selection
 		}) : data[colId] }
 	</div>
 }
@@ -265,7 +282,7 @@ function EditableCell<T extends { [id: string]: any }, TV extends T, ID extends 
 	*/
 }
 
-function isEditable<T, TV extends T, V>(col: ColumnDescriptor<T, TV, V> | undefined, row: T) {
+function isEditable<T extends { [id: string]: any }, TV extends T, V>(col: ColumnDescriptor<T, TV, V> | undefined, row: T) {
 	switch (typeof col?.editable) {
 		case 'boolean': return col.editable
 		case 'function': return col.editable(row)
@@ -283,9 +300,12 @@ interface RowProps<T extends { [id: string]: any }, TV extends T, C extends Colu
 	active?: boolean
 	onClick?: (evt: React.SyntheticEvent) => void
 	onEditClick?: () => void
+	selection?: SelectionProvider
 }
 
-function Row<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV>, ID extends keyof T & string>({ className, data, columns, columnConfig, selected, active, onClick, onEditClick }: RowProps<T, TV, C, ID>) {
+function Row<T extends { [id: string]: any }, TV extends T, C extends Columns<T, TV>, ID extends keyof T & string>({
+	className, data, columns, columnConfig, selected, active, onClick, onEditClick, selection
+}: RowProps<T, TV, C, ID>) {
 	const rowRef = React.useRef<HTMLDivElement>(null)
 
 	React.useEffect(() => {
@@ -304,6 +324,7 @@ function Row<T extends { [id: string]: any }, TV extends T, C extends Columns<T,
 			width={col.width}
 			data={data}
 			onEdit={onEditClick}
+			selection={selection}
 		/>
 	)}
 		<div className="sui-fill"/>
@@ -388,7 +409,7 @@ export interface DataTableProps<T extends { [id: string]: any }, TV extends T, C
 	columnConfig: ColumnConfig<C>[]
 	struct?: T.StructType<T>
 	scroll?: boolean
-	selection?: boolean | 'multi'
+	selection?: SelectionProvider
 	className?: string
 	rowClassName?: string
 	selectedRowClassName?: string
@@ -497,7 +518,9 @@ function DataTableInner<T extends { [id: string]: any }, TV extends T = T, C ext
 
 	const renderMenuItem = React.useCallback(function renderMenuItem(col: ColumnConfig<C>, { className, style, ref }: ItemProps) {
 		const column = columns[col.id]
-		return <div ref={ref as any} className={className ?? menuItemClassName ?? 'item'} style={style}>{column?.title || ''}</div>
+		return <div ref={ref as any} className={className ?? menuItemClassName ?? 'item'} style={style}>
+			{typeof column?.title == 'function' ? column?.title({ selection }) : column?.title || ''}
+		</div>
 	}, [columns])
 
 	function handleCellChange(row: T, colId: keyof T, value: string) {
@@ -573,6 +596,7 @@ function DataTableInner<T extends { [id: string]: any }, TV extends T = T, C ext
 						width={col.width}
 						sortAsc={td.state.sort == col.id ? td.state.sortAsc : undefined}
 						onClick={columns?.[col.id]?.sort ? () => toggleSort(col.id) : undefined}
+						selection={selection}
 					/>) }
 					<div className="sui-fill"/>
 				</div>
@@ -604,6 +628,7 @@ function DataTableInner<T extends { [id: string]: any }, TV extends T = T, C ext
 					active={row[dataKey] === td.active}
 					onClick={evt => onRowClick(evt, row[dataKey])}
 					onEditClick={onSubmit ? () => setEditedRowId(row[dataKey]) : undefined}
+					selection={selection}
 				/>
 			)}
 		</div>
